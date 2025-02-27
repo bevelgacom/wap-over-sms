@@ -19,7 +19,6 @@ import (
 
 type WDPGateway struct {
 	WapBoxHost string
-	WAPBoxPort int
 
 	smsBox *kannel.SMSBox
 }
@@ -32,10 +31,9 @@ type UDH struct {
 	Dest      uint16
 }
 
-func NewWDPGateway(wapBoxHost string, wapBoxPort int, smsbox *kannel.SMSBox) *WDPGateway {
+func NewWDPGateway(wapBoxHost string, smsbox *kannel.SMSBox) *WDPGateway {
 	return &WDPGateway{
 		WapBoxHost: wapBoxHost,
-		WAPBoxPort: wapBoxPort,
 
 		smsBox: smsbox,
 	}
@@ -69,7 +67,7 @@ func (w *WDPGateway) HandleIncomingSMS(from string, udh []byte, body []byte) err
 	}
 
 	destAddr := net.UDPAddr{
-		Port: w.WAPBoxPort,
+		Port: int(udhData.Source),
 		IP:   net.ParseIP(w.WapBoxHost),
 	}
 
@@ -77,7 +75,7 @@ func (w *WDPGateway) HandleIncomingSMS(from string, udh []byte, body []byte) err
 	if err != nil {
 		return err
 	}
-	log.Printf("Sent %d bytes to %s:%d\n", len(body), w.WapBoxHost, w.WAPBoxPort)
+	log.Printf("Sent %d bytes to %s:%d\n", len(body), w.WapBoxHost, destAddr.Port)
 
 	return nil
 }
@@ -132,7 +130,7 @@ func (w *WDPGateway) listenAndRelay(ctx context.Context, conn *net.UDPConn, udhD
 			}
 
 			data := buf[:n]
-			sms := w.generateUDHWapOverSMS(udhData.Dest, data)
+			sms := w.generateUDHWapOverSMS(udhData.Source, udhData.Dest, data)
 			log.Printf("Sending %d bytes to %s\n", len(data), phoneNumber)
 
 			c := 0
@@ -154,7 +152,7 @@ func (w *WDPGateway) listenAndRelay(ctx context.Context, conn *net.UDPConn, udhD
 	}
 }
 
-func (w *WDPGateway) generateUDHWapOverSMS(destinationPort uint16, data []byte) string {
+func (w *WDPGateway) generateUDHWapOverSMS(sourcePort, destinationPort uint16, data []byte) string {
 	const maxBytesPerMessage = 110
 	var sms string
 
@@ -173,7 +171,7 @@ func (w *WDPGateway) generateUDHWapOverSMS(destinationPort uint16, data []byte) 
 				0x04,             // content length
 			}
 			header = append(header, byte(destinationPort>>8), byte(destinationPort&0xff)) // Destination port number
-			header = append(header, 0x23, 0xF0)                                           // Source port number
+			header = append(header, byte(sourcePort>>8), byte(sourcePort&0xff))           // Source port number
 
 			start := (currentSMS - 1) * maxBytesPerMessage
 			end := start + maxBytesPerMessage
@@ -191,7 +189,7 @@ func (w *WDPGateway) generateUDHWapOverSMS(destinationPort uint16, data []byte) 
 			0x04, // content length
 		}
 		header = append(header, byte(destinationPort>>8), byte(destinationPort&0xff)) // Destination port number
-		header = append(header, 0x23, 0xF0)                                           // Source port number
+		header = append(header, byte(sourcePort>>8), byte(sourcePort&0xff))           // Source port number
 
 		bindata := append(header, data...)
 		sms = hex.EncodeToString(bindata)

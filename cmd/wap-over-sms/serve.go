@@ -23,7 +23,6 @@ type serveCommand struct {
 	ListenAddr string
 
 	WAPBoxHost string
-	WAPBoxPort int
 
 	SMSBoxUsername  string
 	SMSBoxPassword  string
@@ -45,7 +44,6 @@ func NewPassDownloadCommand() *cobra.Command {
 	c.Flags().StringVarP(&s.Token, "token", "t", "", "Token for kannel incoming auth")
 
 	c.Flags().StringVarP(&s.WAPBoxHost, "wapbox-host", "", "127.0.0.1", "wapbox IP")
-	c.Flags().IntVarP(&s.WAPBoxPort, "wapbox-port", "", 9200, "wapbox port")
 
 	c.Flags().StringVarP(&s.ListenAddr, "listen-addr", "", ":8080", "Listen address")
 
@@ -69,7 +67,7 @@ func (s *serveCommand) Validate(cmd *cobra.Command, args []string) error {
 
 func (s *serveCommand) RunE(cmd *cobra.Command, args []string) error {
 	smsbox := kannel.NewSMSBox(s.SMSBoxUsername, s.SMSBoxPassword, s.SMSBoxHost, s.SMSBoxSenderMSN)
-	s.wdpGateway = wdp.NewWDPGateway(s.WAPBoxHost, s.WAPBoxPort, smsbox)
+	s.wdpGateway = wdp.NewWDPGateway(s.WAPBoxHost, smsbox)
 	e := echo.New()
 	e.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "WAP over SMS Gateway")
