@@ -76,6 +76,8 @@ wap-over-sms serve \
 - [Nokia 7110](https://en.wikipedia.org/wiki/Nokia_7110)
 - Probably others, this is a rare WAP bearer if you know another model please let us know!
 
+TIP: do not set the session type to "continuous", the Kannel system doesn't understand the WSP session PDU correct. **Use Temporary Session**
+
 ## Good to know when running on the public GSM network
 
 Some GSM carriers will block outgoing SMSes with WDP headers. The reason for this is unknown, a suspicion is that it is related to a legacy billing system trying
