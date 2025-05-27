@@ -28,6 +28,7 @@ type serveCommand struct {
 	SMSBoxPassword  string
 	SMSBoxHost      string
 	SMSBoxSenderMSN string
+	SMSC            string
 
 	wdpGateway *wdp.WDPGateway
 }
@@ -51,6 +52,7 @@ func NewPassDownloadCommand() *cobra.Command {
 	c.Flags().StringVarP(&s.SMSBoxPassword, "smsbox-password", "", "", "SMSBox password")
 	c.Flags().StringVarP(&s.SMSBoxHost, "smsbox-host", "", "", "SMSBox host")
 	c.Flags().StringVarP(&s.SMSBoxSenderMSN, "smsbox-sender-msn", "", "", "SMSBox sender MSN")
+	c.Flags().StringVarP(&s.SMSC, "smsc", "", "", "Which Kannel SMSC to use for sending SMS (optional)")
 
 	c.MarkFlagRequired("token")
 	c.MarkFlagRequired("smsbox-username")
@@ -66,7 +68,7 @@ func (s *serveCommand) Validate(cmd *cobra.Command, args []string) error {
 }
 
 func (s *serveCommand) RunE(cmd *cobra.Command, args []string) error {
-	smsbox := kannel.NewSMSBox(s.SMSBoxUsername, s.SMSBoxPassword, s.SMSBoxHost, s.SMSBoxSenderMSN)
+	smsbox := kannel.NewSMSBox(s.SMSBoxUsername, s.SMSBoxPassword, s.SMSBoxHost, s.SMSBoxSenderMSN, s.SMSC)
 	s.wdpGateway = wdp.NewWDPGateway(s.WAPBoxHost, smsbox)
 	e := echo.New()
 	e.GET("/", func(c echo.Context) error {

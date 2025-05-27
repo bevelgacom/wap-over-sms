@@ -10,12 +10,18 @@ import (
 	"math"
 	"net"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
 	"github.com/bevelgacom/wap-over-sms/pkg/kannel"
 	"golang.org/x/sys/unix"
 )
+
+// right now this is one per process
+// the Nokia 7110 is terrible at chosing random source ports that is always the same
+// in the future we might consier using virtual IPs to get around this
+var udpMutex = &sync.Mutex{}
 
 type WDPGateway struct {
 	WapBoxHost string
@@ -61,6 +67,8 @@ func (w *WDPGateway) HandleIncomingSMS(from string, udh []byte, body []byte) err
 	if err != nil {
 		return err
 	}
+
+	udpMutex.Lock()
 	conn, err := w.spawnWDPConnection(udhData, from, 60*time.Second)
 	if err != nil {
 		return err
@@ -108,7 +116,7 @@ func (w *WDPGateway) spawnWDPConnection(udhData UDH, phoneNumber string, ttl tim
 		}
 		conn = lp.(*net.UDPConn)
 	}
-	conn.SetDeadline(time.Now().Add(5 * time.Second))
+	conn.SetDeadline(time.Now().Add(3 * time.Second))
 
 	go w.listenAndRelay(ctx, conn, udhData, phoneNumber)
 
@@ -116,6 +124,7 @@ func (w *WDPGateway) spawnWDPConnection(udhData UDH, phoneNumber string, ttl tim
 }
 
 func (w *WDPGateway) listenAndRelay(ctx context.Context, conn *net.UDPConn, udhData UDH, phoneNumber string) {
+	defer udpMutex.Unlock()
 	defer conn.Close()
 	for {
 		select {

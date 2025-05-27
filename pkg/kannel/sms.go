@@ -16,14 +16,16 @@ type SMSBox struct {
 	Password  string
 
 	SenderMSN string
+	SMSC      string
 }
 
-func NewSMSBox(username, password, kannelURL, senderMSN string) *SMSBox {
+func NewSMSBox(username, password, kannelURL, senderMSN, smsc string) *SMSBox {
 	return &SMSBox{
 		Username:  username,
 		Password:  password,
 		KannelURL: kannelURL,
 		SenderMSN: senderMSN,
+		SMSC:      smsc,
 	}
 }
 
@@ -50,6 +52,7 @@ func (s *SMSBox) sendSMS(to string, udhHeader string, content string) error {
 	data["username"] = []string{s.Username}
 	data["password"] = []string{s.Password}
 	data["from"] = []string{s.SenderMSN}
+	data["smsc"] = []string{s.SMSC}
 	data["to"] = []string{to}
 	data["udh"] = []string{udhHeader}
 	data["text"] = []string{content}
